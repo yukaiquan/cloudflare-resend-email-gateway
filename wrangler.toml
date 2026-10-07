@@ -1,0 +1,10 @@
+name = 'cloudflare-email-gateway'
+main = "index.js"
+compatibility_date = "2026-06-10"
+workers_dev = false
+
+# 提示：RESEND_API_KEY 作为敏感 Secret，不要写在这里，发布后去 Cloudflare 网页端配置
+# CLIENT_TOKEN 仅用于旧版 POST / API；写信页面请用 Cloudflare Access 保护，不需要它
+# 写信页面和 /api/send 会校验 Cloudflare Access JWT；需要在 Worker 变量中配置：
+# ACCESS_TEAM_DOMAIN = "https://<your-team>.cloudflareaccess.com"
+# ACCESS_AUD = "<Zero Trust 应用的 Application Audience (AUD) Tag>"
