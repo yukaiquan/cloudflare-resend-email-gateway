@@ -1,4 +1,4 @@
-name = 'cloudflare-email-gateway'
+name = 'cloudflare-resend-email-gateway'
 main = "index.js"
 compatibility_date = "2026-06-10"
 workers_dev = false
