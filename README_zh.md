@@ -105,9 +105,9 @@ https://email.example.com/
 
 ## 🚀 API 调用示例
 
-旧版 token API 仍保留在 `POST /`：
+旧版 token API 已迁移到 `POST /api/legacy`（从 `POST /` 拆出，便于在 Cloudflare Access 中单独放行该路径，不会暴露写信页）：
 
-- **请求地址 (URL):** `https://email.example.com/`
+- **请求地址 (URL):** `https://email.example.com/api/legacy`
 - **请求头 (Headers):**
   - `Content-Type: application/json`
   - `Authorization: Bearer <你配置的 CLIENT_TOKEN>`
@@ -122,3 +122,53 @@ https://email.example.com/
   "html": "<h1>系统通知</h1><p>服务器运行状态<strong>正常</strong>。</p>"
 }
 ```
+
+> ℹ️ 想从 Cloudflare Access 外部调用，需在 Access 应用里给 `/api/legacy` 加**路径排除**，或签发 **Service Token** 并附带 `CF-Access-Client-Id` / `CF-Access-Client-Secret` 请求头。否则请求会被 302 重定向到登录页。
+
+## 🧩 高级用法
+
+### 📄 邮件模板（KV）
+
+把常用邮件存成模板，写信页一键加载。模板存在 Cloudflare KV，按 Access 用户邮箱隔离（仅本人可见）。
+
+1. 创建 KV namespace：
+   ```bash
+   npx wrangler kv namespace create TEMPLATES_KV
+   ```
+2. 把返回的 `id` 填进 `wrangler.toml`（取消 `[[kv_namespaces]]` 段注释）。
+3. 重新部署后写信页右侧出现 **邮件模板** 面板：
+   - 选择已保存模板 → 点 **加载** 即可载入主题与正文。
+   - 点 **另存为** 把当前主题+正文保存为模板。
+   - 点 **删除** 移除模板。
+4. 模板 API（受 Access 保护，仅本人）：
+   ```bash
+   # 列表
+   curl -H "Cookie: CF_AppSession=..." https://email.example.com/api/templates
+   # 读取
+   curl -H "Cookie: CF_AppSession=..." https://email.example.com/api/templates/welcome
+   # 保存
+   curl -X POST -H "Content-Type: application/json" -H "Cookie: CF_AppSession=..." \
+     https://email.example.com/api/templates/welcome \
+     -d '{"id":"welcome","name":"欢迎邮件","subject":"欢迎","html":"<p>你好</p>"}'
+   # 删除
+   curl -X DELETE -H "Cookie: CF_AppSession=..." https://email.example.com/api/templates/welcome
+   ```
+
+### 🤖 AI 起草（Workers AI）
+
+输入要点让 AI 生成邮件草稿，再人工修改后发送。
+
+1. `wrangler.toml` 已绑定 `[ai]` → `env.AI` 可用。
+2. 写信页右侧 **AI 起草** 面板：
+   - 文本框每行写一个要点。
+   - 选择语气（正式 / 友好 / 紧急 / 通知）。
+   - 点 **生成正文**，编辑器会被生成的 HTML 替换。
+3. 后端接口（受 Access 保护）：
+   ```bash
+   curl -X POST -H "Content-Type: application/json" -H "Cookie: CF_AppSession=..." \
+     https://email.example.com/api/ai-draft \
+     -d '{"subject":"系统维护","points":["今晚 22:00 系统维护","预计耗时 30 分钟","期间无法登录"],"tone":"紧急"}'
+   ```
+4. 默认模型 `@cf/meta/llama-3.1-8b-instruct`。可在 `handleAiDraftRequest` 中换成 `@cf/meta/llama-3.3-70b-instruct` 提升质量，代价是更慢、配额消耗更多。
+
+> ⚠️ AI 功能消耗 Workers AI 配额；Free 计划每日有免费额度，超出按用量计费。

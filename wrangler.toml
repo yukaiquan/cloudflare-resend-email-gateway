@@ -4,7 +4,18 @@ compatibility_date = "2026-06-10"
 workers_dev = false
 
 # 提示：RESEND_API_KEY 作为敏感 Secret，不要写在这里，发布后去 Cloudflare 网页端配置
-# CLIENT_TOKEN 仅用于旧版 POST / API；写信页面请用 Cloudflare Access 保护，不需要它
+# CLIENT_TOKEN 仅用于旧版 POST /api/legacy API；写信页面请用 Cloudflare Access 保护，不需要它
 # 写信页面和 /api/send 会校验 Cloudflare Access JWT；需要在 Worker 变量中配置：
 # ACCESS_TEAM_DOMAIN = "https://<your-team>.cloudflareaccess.com"
 # ACCESS_AUD = "<Zero Trust 应用的 Application Audience (AUD) Tag>"
+
+# 邮件模板系统存储（KV）。先在 Dashboard 或用 `npx wrangler kv namespace create TEMPLATES_KV`
+# 创建 namespace，把下面注释的 id 替换成实际值后取消注释。未配置时 /api/templates 返回 404。
+# [[kv_namespaces]]
+# binding = "TEMPLATES_KV"
+# id = "<your-kv-namespace-id>"
+
+# Workers AI 绑定（AI 起草功能）。绑定后 Worker 内 env.AI 可用。
+# Workers AI 在 Cloudflare Free 计划下每天有一定免费额度，超出按用量计费。
+[ai]
+binding = "AI"
